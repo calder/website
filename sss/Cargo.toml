@@ -10,4 +10,5 @@ comrak = { version = "*" }
 glob = { version = "*" }
 notify = { version = "*" }
 regex = { version = "*" }
+serde_yaml_ng = { version = "*" }
 tera = { version = "*" }

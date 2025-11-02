@@ -2,9 +2,7 @@ use std::path::PathBuf;
 
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
-use comrak::Options;
 use regex::RegexBuilder;
-use tera::Tera;
 
 /// ⚡ Simple static site generator.
 #[derive(Parser)]
@@ -40,14 +38,17 @@ fn main() -> Result<()> {
 }
 
 fn build(args: CommonArgs) -> Result<()> {
-    let markdown = RegexBuilder::new("---\n+(.*)\n+---\n+(.*)").dot_matches_new_line(true).build().unwrap();
+    let markdown = RegexBuilder::new("---\n+(.*)\n+---\n+(.*)")
+        .dot_matches_new_line(true)
+        .build()
+        .unwrap();
 
     std::env::set_current_dir(&args.path.join("content"))?;
     let out: PathBuf = "../out".into();
     let _ = std::fs::remove_dir_all(&out);
     std::fs::create_dir_all(&out)?;
 
-    let mut tera = Tera::new("../template/**/*")?;
+    let mut tera = tera::Tera::new("../template/**/*")?;
     for src in glob::glob("**/*")? {
         let src = src?;
         let dst = out.join(&src);
@@ -68,16 +69,16 @@ fn build(args: CommonArgs) -> Result<()> {
             "md" => {
                 let src = std::fs::read_to_string(src)?;
                 let captures = markdown.captures(&src).context("Missing metadata")?;
-                let meta = captures.get(1).unwrap();
+                let meta = captures.get(1).unwrap().as_str();
+                let meta: tera::Map<String, tera::Value> = serde_yaml_ng::from_str(meta)?;
+                let typ = meta["type"].as_str().expect("Type must be a string");
                 let content = captures.get(2).unwrap().as_str();
-                let content = comrak::markdown_to_html(&content, &Options::default());
-                let content = format!(r#"{{% extends "post.html" %}}
-{{% block content %}}
-{content}
-{{% endblock content %}}
-"#);
-
-                let context = tera::Context::new();
+                let content = comrak::markdown_to_html(&content, &comrak::Options::default());
+                let content = format!(
+                    "{{% extends \"{}.html\" %}}\n{{% block content %}}\n{}\n{{% endblock content %}}",
+                    typ, content
+                );
+                let context = tera::Context::from_serialize(meta)?;
                 let content = tera.render_str(&content, &context)?;
                 std::fs::write(dst, content)?;
             }
