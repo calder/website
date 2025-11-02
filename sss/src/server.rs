@@ -7,12 +7,15 @@ use axum::response::{Html, IntoResponse};
 use axum::routing::get;
 use tokio::net::TcpListener;
 use tower_http::services::ServeDir;
+use yansi::Paint;
 
 /// Static site server.
 pub struct Server {}
 
 impl Server {
     pub fn start(addr: String) {
+        eprintln!("{} Serving on {}", "LIVE:".green().bright().bold(), format!("http://{addr}").cyan().bold());
+
         std::thread::spawn(move || {
             tokio::runtime::Builder::new_current_thread()
                 .enable_all()

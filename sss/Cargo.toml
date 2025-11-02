@@ -16,3 +16,4 @@ static_init = { version = "*" }
 tera = { version = "*" }
 tokio = { version = "*", features = ["rt-multi-thread"] }
 tower-http = { version = "*", features = ["fs"] }
+yansi = { version = "*" }

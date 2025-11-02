@@ -1,15 +1,20 @@
 use std::path::{Path, PathBuf};
+use std::time::Instant;
 
 use anyhow::{Context, Result};
 use glob::glob;
 use notify::Watcher;
 use regex::{Regex, RegexBuilder};
+use yansi::Paint;
 
 /// Static site generator.
 pub struct Builder {}
 
 impl Builder {
     pub fn build() -> Result<()> {
+        eprintln!("{} Building site", "INFO:".green().bold());
+        let start = Instant::now();
+
         let out = Path::new("out");
         let _ = std::fs::remove_dir_all(out);
         std::fs::create_dir_all(out)?;
@@ -59,6 +64,7 @@ impl Builder {
                 }
             }
         }
+        eprintln!("{} Built site in {}", "INFO:".green().bold(), format!("{:0.03}s", start.elapsed().as_secs_f64()).cyan());
 
         Ok(())
     }
