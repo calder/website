@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 anyhow = { version = "*" }
+axum = { version = "*" }
 clap = { version = "*", features = ["derive"] }
 comrak = { version = "*" }
 glob = { version = "*" }
@@ -12,3 +13,5 @@ notify = { version = "*" }
 regex = { version = "*" }
 serde_yaml_ng = { version = "*" }
 tera = { version = "*" }
+tokio = { version = "*", features = ["rt-multi-thread"] }
+tower-http = { version = "*", features = ["fs"] }

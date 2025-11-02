@@ -1,8 +1,15 @@
 use std::path::PathBuf;
 
 use anyhow::{Context, Result};
+use axum::Router;
+use axum::extract::Path;
+use axum::http::StatusCode;
+use axum::response::{Html, IntoResponse};
+use axum::routing::get;
 use clap::{Parser, Subcommand};
 use regex::RegexBuilder;
+use tokio::net::TcpListener;
+use tower_http::services::ServeDir;
 
 /// ⚡ Simple static site generator.
 #[derive(Parser)]
@@ -28,16 +35,17 @@ enum Cmd {
     Serve(CommonArgs),
 }
 
-fn main() -> Result<()> {
+#[tokio::main]
+async fn main() -> Result<()> {
     let args = Args::parse();
 
     match args.cmd {
-        Cmd::Build(args) => build(args),
-        Cmd::Serve(args) => serve(args),
+        Cmd::Build(args) => build(args).await,
+        Cmd::Serve(args) => serve(args).await,
     }
 }
 
-fn build(args: CommonArgs) -> Result<()> {
+async fn build(args: CommonArgs) -> Result<()> {
     let markdown = RegexBuilder::new("---\n+(.*)\n+---\n+(.*)")
         .dot_matches_new_line(true)
         .build()
@@ -97,6 +105,26 @@ fn build(args: CommonArgs) -> Result<()> {
     Ok(())
 }
 
-fn serve(args: CommonArgs) -> Result<()> {
-    build(args)
+async fn serve(args: CommonArgs) -> Result<()> {
+    build(args).await?;
+
+    let app = Router::new()
+        .route("/{*path}", get(serve_html))
+        .fallback_service(ServeDir::new("../out"));
+    let listener = TcpListener::bind("127.0.0.1:3000").await.unwrap();
+    axum::serve(listener, app).await?;
+
+    Ok(())
+}
+
+async fn serve_html(Path(path): Path<String>) -> impl IntoResponse {
+    let mut path = PathBuf::from("../out").join(path);
+    if path.extension().is_none() {
+        path.set_extension("html");
+    }
+
+    match std::fs::read(path) {
+        Ok(content) => Html(content).into_response(),
+        Err(_) => (StatusCode::NOT_FOUND, "Not found").into_response(),
+    }
 }

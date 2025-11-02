@@ -1,5 +1,10 @@
 html, body {
+    min-height: 100vh;
+    text-size-adjust: none;
+}
+
+*, *::before, *::after {
+    box-sizing: border-box;
     margin: 0;
     padding: 0;
-    height: 100%;
 }
