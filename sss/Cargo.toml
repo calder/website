@@ -12,6 +12,7 @@ glob = { version = "*" }
 notify = { version = "*" }
 regex = { version = "*" }
 serde_yaml_ng = { version = "*" }
+static_init = { version = "*" }
 tera = { version = "*" }
 tokio = { version = "*", features = ["rt-multi-thread"] }
 tower-http = { version = "*", features = ["fs"] }
