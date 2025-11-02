@@ -7,6 +7,7 @@ use axum::http::StatusCode;
 use axum::response::{Html, IntoResponse};
 use axum::routing::get;
 use clap::{Parser, Subcommand};
+use notify::Watcher;
 use regex::RegexBuilder;
 use tokio::net::TcpListener;
 use tower_http::services::ServeDir;
@@ -19,7 +20,7 @@ struct Args {
 }
 
 /// Common arguments.
-#[derive(Parser)]
+#[derive(Clone, Parser)]
 struct CommonArgs {
     #[arg(default_value = ".")]
     path: PathBuf,
@@ -40,12 +41,12 @@ async fn main() -> Result<()> {
     let args = Args::parse();
 
     match args.cmd {
-        Cmd::Build(args) => build(args).await,
+        Cmd::Build(args) => build(args),
         Cmd::Serve(args) => serve(args).await,
     }
 }
 
-async fn build(args: CommonArgs) -> Result<()> {
+fn build(args: CommonArgs) -> Result<()> {
     let markdown = RegexBuilder::new("---\n+(.*)\n+---\n+(.*)")
         .dot_matches_new_line(true)
         .build()
@@ -106,15 +107,36 @@ async fn build(args: CommonArgs) -> Result<()> {
 }
 
 async fn serve(args: CommonArgs) -> Result<()> {
-    build(args).await?;
+    // Start static web server.
+    std::thread::spawn(|| {
+        tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap()
+            .block_on(async {
+                let app = Router::new()
+                    .route("/{*path}", get(serve_html))
+                    .fallback_service(ServeDir::new("../out"));
+                let listener = TcpListener::bind("127.0.0.1:3000").await.unwrap();
+                axum::serve(listener, app).await.unwrap();
+            });
+    });
 
-    let app = Router::new()
-        .route("/{*path}", get(serve_html))
-        .fallback_service(ServeDir::new("../out"));
-    let listener = TcpListener::bind("127.0.0.1:3000").await.unwrap();
-    axum::serve(listener, app).await?;
-
-    Ok(())
+    // Rebuild whenever content changes.
+    build(args.clone()).unwrap();
+    let content = args.path.join("content");
+    let mut watcher =
+        notify::recommended_watcher(move |res: Result<notify::Event, notify::Error>| {
+            let res = res.unwrap();
+            match res.kind {
+                notify::EventKind::Access(_) => {}
+                _ => build(args.clone()).unwrap(),
+            }
+        })?;
+    watcher.watch(&content, notify::RecursiveMode::Recursive)?;
+    loop {
+        std::thread::park();
+    }
 }
 
 async fn serve_html(Path(path): Path<String>) -> impl IntoResponse {
