@@ -4,3 +4,7 @@ html, body {
     height: 100%;
     text-size-adjust: none;
 }
+
+.footnote-backref {
+    display: none;
+}

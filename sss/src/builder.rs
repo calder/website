@@ -44,7 +44,9 @@ impl Builder {
                     let meta: tera::Map<String, tera::Value> = serde_yaml_ng::from_str(meta)?;
                     let typ = meta["type"].as_str().expect("Type must be a string");
                     let content = captures.get(2).unwrap().as_str();
-                    let content = comrak::markdown_to_html(&content, &comrak::Options::default());
+                    let mut options = comrak::Options::default();
+                    options.extension.footnotes = true;
+                    let content = comrak::markdown_to_html(&content, &options);
                     let content = format!(
                         "{{% extends \"{}.html\" %}}\n{{% block content %}}\n{}\n{{% endblock content %}}",
                         typ, content
@@ -64,7 +66,11 @@ impl Builder {
                 }
             }
         }
-        eprintln!("{} Built site in {}", "INFO:".green().bold(), format!("{:0.03}s", start.elapsed().as_secs_f64()).cyan());
+        eprintln!(
+            "{} Built site in {}",
+            "INFO:".green().bold(),
+            format!("{:0.03}s", start.elapsed().as_secs_f64()).cyan()
+        );
 
         Ok(())
     }
@@ -72,7 +78,6 @@ impl Builder {
     pub fn watch() -> ! {
         Builder::build().expect("Error building site");
 
-        let content = Path::new("content");
         let mut watcher =
             notify::recommended_watcher(move |res: Result<notify::Event, notify::Error>| {
                 let res = res.expect("Error getting filesystem watch event");
@@ -83,8 +88,11 @@ impl Builder {
             })
             .expect("Error creating filesystem watcher");
         watcher
-            .watch(&content, notify::RecursiveMode::Recursive)
-            .expect("Error watching filesystem");
+            .watch(&Path::new("content"), notify::RecursiveMode::Recursive)
+            .expect("Error watching content/");
+        watcher
+            .watch(&Path::new("template"), notify::RecursiveMode::Recursive)
+            .expect("Error watching templates/");
 
         loop {
             std::thread::park();
