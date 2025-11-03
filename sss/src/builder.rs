@@ -22,7 +22,7 @@ impl Builder {
         let mut tera = tera::Tera::new("template/**/*")?;
         for src in glob("content/*")? {
             let src = src?;
-            let dst = out.join(&src.components().skip(1).collect::<PathBuf>());
+            let dst = out.join(src.components().skip(1).collect::<PathBuf>());
             let dst = match dst
                 .extension()
                 .map(|e| e.to_str().unwrap_or(""))
@@ -46,7 +46,7 @@ impl Builder {
                     let content = captures.get(2).unwrap().as_str();
                     let mut options = comrak::Options::default();
                     options.extension.footnotes = true;
-                    let content = comrak::markdown_to_html(&content, &options);
+                    let content = comrak::markdown_to_html(content, &options);
                     let content = format!(
                         "{{% extends \"{}.html\" %}}\n{{% block content %}}\n{}\n{{% endblock content %}}",
                         typ, content
@@ -88,10 +88,10 @@ impl Builder {
             })
             .expect("Error creating filesystem watcher");
         watcher
-            .watch(&Path::new("content"), notify::RecursiveMode::Recursive)
+            .watch(Path::new("content"), notify::RecursiveMode::Recursive)
             .expect("Error watching content/");
         watcher
-            .watch(&Path::new("template"), notify::RecursiveMode::Recursive)
+            .watch(Path::new("template"), notify::RecursiveMode::Recursive)
             .expect("Error watching templates/");
 
         loop {
