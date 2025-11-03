@@ -3,6 +3,8 @@
 {% block title %}{{ name }}{% endblock title %}
 
 {% block body %}
-<img src="/avatar.png" height="200" alt="me">
+<div class="container-sm" style="max-width: 40em;">
+<img class="mx-auto mb-5 d-block" src="/avatar.png" height="200" alt="Stick figure">
 {% block content %}{% endblock content %}
+</div>
 {% endblock body %}

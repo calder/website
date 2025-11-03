@@ -28,7 +28,7 @@ struct ServeArgs {
     build: BuildArgs,
 
     /// Address to listen on.
-    #[arg(default_value = "localhost:8080")]
+    #[arg(long, default_value = "localhost:8080")]
     addr: String,
 }
 
